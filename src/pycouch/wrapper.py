@@ -8,6 +8,9 @@ QUEUE_MAPPER = None
 
 DEBUG_MODE = False
 
+SESSION = requests.session()
+SESSION.trust_env = False
+
 def setKeyMappingRules(ruleLitt) :
     global QUEUE_MAPPER
     QUEUE_MAPPER = {}
@@ -86,6 +89,7 @@ def volDocAdd(iterable, updateFunc=lambdaFuse):
 
 def bulkDocAdd(iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterable w/ key:value pairs, key is primary _id in DB and value is document to insert
     global DEFAULT_END_POINT
+    global SESSION
     if DEBUG_MODE:
         print("bulkDocAdd iterable content", iterable)
 
@@ -126,7 +130,7 @@ def bulkDocAdd(iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterabl
     #r = requests.post(DEFAULT_END_POINT + '/' + target + '/_bulk_docs', json=bulkInsertData)
     #ans = json.loads(r.text)
     insertError, insertOk = ([], [])
-    r = requests.post(DEFAULT_END_POINT + '/' + target + '/_bulk_docs', json=bulkInsertData)
+    r = SESSION.post(DEFAULT_END_POINT + '/' + target + '/_bulk_docs', json=bulkInsertData)
     ans = json.loads(r.text)       
     insertOk, insertError = bulkDocErrorReport(ans)
     # If unknown_error occurs in insertion, rev tag have to updated, this fn takes care of this business
@@ -181,7 +185,7 @@ def bulkDocErrorReport(data):
 
     return (ok, err)
 
-def bulkRequestByKey(keyIter, target, packetSize=2000):          
+def bulkRequestByKey(keyIter, target, packetSize=2000):       
     data = {"results" : []}
     if DEBUG_MODE:
         print("bulkRequestByKey at", target)
@@ -196,11 +200,12 @@ def bulkRequestByKey(keyIter, target, packetSize=2000):
     return data
 
 def _bulkRequestByKey(keyIter, target):
+    global SESSION
     req = {
         "docs" : [ {"id" : k } for k in keyIter ]
     }
     url = DEFAULT_END_POINT + '/' + target +'/_bulk_get'
-    r = requests.post(url, json=req)
+    r = SESSION.post(url, json=req)
     data = json.loads(r.text) 
     if not 'results' in data:
         raise TypeError("Unsuccessful bulkRequest at", url)
@@ -211,9 +216,10 @@ def _bulkRequestByKey(keyIter, target):
 ## NON BULK FUNCTIONS
 def couchPing():
     global DEFAULT_END_POINT
+    global SESSION
     data = ""
     try :
-        r = requests.get(DEFAULT_END_POINT)
+        r = SESSION.get(DEFAULT_END_POINT)
         try :
             data = json.loads(r.text)
         except:
@@ -228,18 +234,21 @@ def couchPing():
 
 def couchPS():
     global DEFAULT_END_POINT
-    r = requests.get(DEFAULT_END_POINT + '/_active_tasks')
+    global SESSION
+    r = SESSION.get(DEFAULT_END_POINT + '/_active_tasks')
     return json.loads(r.text)
 
 def couchGetRequest(path):
+    global SESSION
     global DEFAULT_END_POINT
-    r= requests.get(DEFAULT_END_POINT + '/' + path)
+    r= SESSION.get(DEFAULT_END_POINT + '/' + path)
     resulttext = r.text
     return json.loads(resulttext)
 
 def couchPutRequest(path, data):
     global DEFAULT_END_POINT
-    r= requests.put(DEFAULT_END_POINT + '/' + path, json=data)
+    global SESSION
+    r= SESSION.put(DEFAULT_END_POINT + '/' + path, json=data)
     resulttext = r.text
     return json.loads(resulttext)
 
