@@ -15,18 +15,18 @@ from setuptools import setup
 
 setup(
   name = 'pycouch',
-  version = '1.0',
+  version = '1.1',
   license='BSD',
   description = 'Wrapper functions to interact with a couch DB',
   author = 'Guillaume Launay',
   author_email = 'pitooon@gmail.com',
-  url = 'https://github.com/glaunay/pyCouch', # use the URL to the github repo
+  url = 'https://github.com/MMSB-MOBI/pyCouch', # use the URL to the github repo
   packages=find_packages('src'),
   package_dir={'': 'src'},
   include_package_data=True,
   zip_safe=False,
   py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
-  download_url = 'https://github.com/glaunay/pyCouch/tarball/1.0', # I'll explain this in a second
+  download_url = 'https://github.com/glaunay/MMSB-MOBI/tarball/1.0', # I'll explain this in a second
   keywords = ['couchDB', 'python'], # arbitrary keywords
   classifiers = [],
   install_requires=[
