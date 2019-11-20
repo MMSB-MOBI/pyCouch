@@ -21,7 +21,7 @@ def setKeyMappingRules(ruleLitt) :
         }
 
 
-def putInQueue(key, val):
+def putInQueue(key, val = None):
     global QUEUE_MAPPER
 
     for regExp, cQueue in QUEUE_MAPPER.items():
@@ -41,6 +41,9 @@ def setServerUrl(path):
 def lambdaFuse(old, new):
     for k in new:
         old[k] = new[k]
+    #Reinsert new document even if an old one with same id have been deleted    
+    if old.get("_deleted"):
+        old = {k: v for k,v in old.items() if k not in ["_rev", "_deleted"]} 
     return old
 
 ## MULTIPLE VOLUME BULK FN WRAPPER 
@@ -55,9 +58,13 @@ def volDocAdd(iterable, updateFunc=lambdaFuse):
     data = []
     for k,v in list(iterable.items()):
         putInQueue(k,v)
+        break
     for regExp, cQueue in QUEUE_MAPPER.items():
         if not cQueue["queue"]:
             continue
+        else:
+            print(regExp)
+            print(cQueue)    
         print("inserting ", regExp, str(len(cQueue["queue"])), "element(s) =>", cQueue["volName"])
         if DEBUG_MODE:
             print("DM",cQueue["queue"])
@@ -84,8 +91,66 @@ def volDocAdd(iterable, updateFunc=lambdaFuse):
     resetQueue()
     return data
 
+def volDocUpdate(keys, updateFunc=lambdaFuse, **kwargs):
+    global QUEUE_MAPPER
+    if not QUEUE_MAPPER:
+        raise ValueError ("Please set volume mapping rules")
+
+    for k in keys:
+        putInQueue(k)
+
+    for regExp, cQueue in QUEUE_MAPPER.items():
+        if not cQueue["queue"]:
+            continue
+
+        print("updating ", regExp, str(len(cQueue["queue"])), "element(s) =>", cQueue["volName"])  
+        data = bulkDocUpdate(cQueue["queue"], updateFunc=updateFunc, target=cQueue["volName"], **kwargs)
+        break
         
+
 ## BULK FUNCTIONS
+
+def bulkDocUpdate(iterable, updateFunc=lambdaFuse, target=None, depth=0, **kwargs):
+    ans = bulkRequestByKey(list(iterable.keys()), target)
+    bulkInsertData = {"docs" : [] }
+    i = 0
+    for reqItem in ans['results']:    
+        i += 1   
+        current_doc = reqItem['docs'][0]["ok"]
+        dataToPut = updateFunc(current_doc, **kwargs)
+        bulkInsertData["docs"].append(dataToPut)
+        if (i == 2):
+            break
+    
+    insertError, insertOk = ([], [])
+    r = SESSION.post(DEFAULT_END_POINT + '/' + target + '/_bulk_docs', json=bulkInsertData)
+    ans = json.loads(r.text)       
+    insertOk, insertError = bulkDocErrorReport(ans)
+    # If unknown_error occurs in insertion, rev tag have to updated, this fn takes care of this business
+    # so we filter the input and make a recursive call 
+
+    if insertError:
+        depth += 1
+        if DEBUG_MODE:
+            print("Retry depth", depth)
+        if depth == 1:
+            print("Insert Error Recursive fix\n", insertError)
+
+        if depth == 50:
+            print("Giving up at 50th try for", insertError)
+        else:
+            idError = [ d['id'] for d in insertError ]
+            if DEBUG_MODE:
+                print("iterable to filter from", iterable)
+                print("depth", depth, ' insert Error content:', insertError)
+            _iterable = { k:v for k,v in iterable.items() if k in idError}
+            insertOk  += bulkDocAdd(_iterable, updateFunc=updateFunc, target=target, depth=depth)
+    elif depth > 0:
+        print("No more recursive insert left at depth", depth)
+    if DEBUG_MODE:
+        print("returning ", insertOk)
+    return insertOk   
+
 
 def bulkDocAdd(iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterable w/ key:value pairs, key is primary _id in DB and value is document to insert
     global DEFAULT_END_POINT
@@ -96,7 +161,7 @@ def bulkDocAdd(iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterabl
     if not target:
         raise ValueError ("No target db specified")
     ans = bulkRequestByKey(list(iterable.keys()), target)# param iterable msut have a keys method
-
+    
     if DEBUG_MODE:
         print("bulkDocAdd prior key request ", ans.keys())
         print(ans)
@@ -122,7 +187,8 @@ def bulkDocAdd(iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterabl
             dataToPut = updateFunc(_datum["ok"], iterable[key])
         else:
             print('unrecognized item packet format', str(reqItem))
-            continue
+            continue  
+            
         bulkInsertData["docs"].append(dataToPut)
         
     if DEBUG_MODE:
@@ -218,6 +284,8 @@ def couchPing():
     global DEFAULT_END_POINT
     global SESSION
     data = ""
+    print("couchPing")
+    print(DEFAULT_END_POINT)
     try :
         r = SESSION.get(DEFAULT_END_POINT)
         try :
@@ -282,7 +350,7 @@ def couchAddDoc(data, target=None, key=None, updateFunc=lambdaFuse):
 
     key = couchGenerateUUID() if not key else key
     ans = couchGetDoc(target,key)
-    
+
     dataToPut = data
     if not ans:
         if DEBUG_MODE:
@@ -292,7 +360,7 @@ def couchAddDoc(data, target=None, key=None, updateFunc=lambdaFuse):
         if DEBUG_MODE:
             print ("Updating " + target + "/" + key)
             print(ans)
-        dataToPut = updateFunc(ans, data)
+        dataToPut = updateFunc(ans, data)   
     
     ans = couchPutDoc(target, key, dataToPut)
 
