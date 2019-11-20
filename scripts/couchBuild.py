@@ -38,7 +38,12 @@ def _lambda():
 class GenomeData():
     def __init__(self, *args):
         if len(args) > 0:
-            self.data = pickle.load( open(args[0], "rb" ) )
+            self.data = {}
+            data = pickle.load( open(args[0], "rb" ) )
+            for k in data:
+                if k.startswith("AAA"):
+                    self.data[k] = data[k]
+            
         
     def __getitem__(self, val):
         if isinstance(val, slice):
@@ -57,11 +62,8 @@ class GenomeData():
 
 if __name__ == "__main__":
     arguments = docopt(__doc__, version='couchBuild 1.0')
-    print(arguments)
    
     couchDB.DEBUG_MODE = arguments['--verbose']
-    print(couchDB.DEBUG_MODE)
-    
 
     if arguments['--list']:
         fNames = getOrderFileList(arguments['--list'])
@@ -71,7 +73,7 @@ if __name__ == "__main__":
 
     if arguments['--url']:
         couchDB.setServerUrl(arguments['--url'])
-    
+
     subSetToFix = None
     if arguments['--fix']:
         print("Extracting errors from", arguments['--fix'])
@@ -89,8 +91,6 @@ if __name__ == "__main__":
             raise ValueError
         
         return motif in subSetToFix[commonName + '.p'] # Is the motif part of the failed obne
-
-
 
 
     if not couchDB.couchPing():
@@ -127,7 +127,6 @@ if __name__ == "__main__":
                 x =len(c)
                 c = c.filter(gDatumMotifMatchLambda)
                 print(str(x), "->", str(len(c)), 'Early exiting')
-              
 
             for i in range(0,len(c), batchSize):
                 j = i + batchSize if i + batchSize < len(c) else len(c)
