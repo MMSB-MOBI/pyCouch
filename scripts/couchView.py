@@ -1,5 +1,3 @@
-# TO DO : add parallel insertion
-
 import pycouch.wrapper as couchDB
 import argparse
 import re
