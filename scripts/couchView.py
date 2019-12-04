@@ -9,7 +9,7 @@ def args_gestion():
     args = parser.parse_args()
 
     if args.url:
-        args.url = args.url.rsplit("/")
+        args.url = args.url.rstrip("/")
 
     return args
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     if not couchDB.couchPing():
         exit(1)
-
+    
     if ARGS.url:
         couchDB.setServerUrl(ARGS.url)
 
