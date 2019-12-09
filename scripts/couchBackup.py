@@ -8,8 +8,7 @@ import sys
 import os
 import requests
 import json
-sys.path.append("/home/chilpert/Dev/CSTB_database/lib")
-import watch as watch
+import pycouch.watch_replication_old as watch
 
 SESSION = requests.session()
 SESSION.trust_env = False
