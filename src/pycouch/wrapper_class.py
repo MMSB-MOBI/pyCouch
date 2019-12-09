@@ -372,3 +372,8 @@ class Wrapper():
     def couchCreateDB(self, target):
         r = SESSION.put(self.end_point + "/" + target)
         return json.loads(r.text)
+
+    def couchPostRequest(self, path, data):
+        r = SESSION.post(self.end_point + "/" + path, json = data)
+        resulttext = r.text
+        return json.loads(resulttext)
