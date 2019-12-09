@@ -357,3 +357,14 @@ class Wrapper():
 
         if DEBUG_MODE:
             print(ans)
+
+    def targetNotFound(self,data):
+        if "error" in data and "reason" in data:
+            return data["error"] == "not_found" and data["reason"] == "Database does not exist."
+        return False
+
+    def couchTargetExist(self, target):
+        res = self.couchGetRequest(target)
+        if self.targetNotFound(res):
+            return False  
+        return True 
