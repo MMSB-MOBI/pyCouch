@@ -368,3 +368,7 @@ class Wrapper():
         if self.targetNotFound(res):
             return False  
         return True 
+
+    def couchCreateDB(self, target):
+        r = SESSION.put(self.end_point + "/" + target)
+        return json.loads(r.text)
