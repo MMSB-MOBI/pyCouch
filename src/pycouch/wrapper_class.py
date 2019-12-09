@@ -17,9 +17,15 @@ def lambdaFuse(old, new):
     return old
 
 class Wrapper():
-    def __init__(self, end_point = 'http://127.0.0.1:5984', admin = None):
+    def __init__(self, end_point = 'http://127.0.0.1:5984', admin = (None,None)):
+        '''end_point : couch url
+        admin : tuple (admin login, admin password)
+        '''
         self.end_point = end_point.rstrip("/")
+        self._bak_endpoint = "".join(end_point.split("//")[1:])
         self.queue_mapper = {}
+        if admin[0] and admin[1]:
+            self.admin = self.setAdmin(admin[0], admin[1])
     
     def setServerUrl(self,path):
         '''path : str'''
@@ -33,6 +39,10 @@ class Wrapper():
                 "volName" : ruleLitt[regExp],
                 "queue" : {}
             }
+
+    def setAdmin(self, admin_name, admin_password):
+        self.admin = admin_name
+        self.end_point = 'http://' + admin_name + ":" + admin_password + "@" + self._bak_endpoint
 
     ## QUEUE FUNCTIONS
     def putInQueue(self, key, val = None):
