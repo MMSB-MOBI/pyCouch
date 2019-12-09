@@ -1,5 +1,7 @@
 import requests
 import json, re, time, random
+from multiprocessing import Pool
+import grequests
 
 DEBUG_MODE = False
 
@@ -387,3 +389,50 @@ class Wrapper():
         r = SESSION.post(self.end_point + "/" + path, json = data)
         resulttext = r.text
         return json.loads(resulttext)
+
+    def couchGetDocNumber(self, target):
+        r = self.couchGetRequest(target)
+        if self.targetNotFound(r):
+            raise Exception(f"{target} not found") 
+        return r["doc_count"]    
+
+    def couchGetAllIds(self, target, withDocs = False):
+        if withDocs:
+            r = self.couchGetRequest(target + "/_all_docs" , {"include_docs" : True})
+            return [row["doc"] for row in r["rows"]]
+        else:
+            r = self.couchGetRequest(target + "/_all_docs")
+            return [row["id"] for row in r["rows"]]
+
+    def couchGetAllIdsWithFind(self, target, withDocs = False):
+        doc_number = self.couchGetDocNumber(target)
+        select_doc = {"selector":{}, "limit": doc_number}
+        if not withDocs:
+            select_doc["fields"] = ["_id"] 
+        maybePost = self.couchPostRequest(target + "/_find", select_doc)  
+        return maybePost
+
+    def couchFindRequestParallel(self, target, selectors):
+        results = []
+        print("Request", [s["skip"] for s in selectors])
+        rs = (grequests.post(self.end_point + "/" + target + "/_find", proxies={ 'http': None}, json = s) for s in selectors)
+        rep = grequests.map(rs)
+        results = [doc for r in rep for doc in json.loads(r.text)["docs"]]
+        return results
+
+    def couchGetAllDocsWithFindParallel(self, target, bulk_size, parallel_request, max_process):
+        doc_number = self.couchGetDocNumber(target)
+        nb_bulk = doc_number // bulk_size if doc_number % bulk_size == 0 else doc_number // bulk_size + 1
+        nb_call = nb_bulk // parallel_request if nb_bulk % parallel_request == 0 else nb_bulk // parallel_request + 1
+
+        print(f"{nb_bulk} bulks. {max_process} process. {parallel_request} parallel request on same process. {nb_call} calls.")
+        
+        all_selectors = [{"selector": {}, "skip":i*bulk_size, "limit":bulk_size} for i in range(nb_bulk)]
+        
+        pool_args = [ (target, all_selectors[x:x+parallel_request]) for x in range(0, len(all_selectors), parallel_request)]
+
+        p = Pool(max_process)
+        
+        all_results = [doc for result in p.starmap(self.couchFindRequestParallel, pool_args) for doc in result]
+
+        return all_results
