@@ -3,7 +3,7 @@ sys.path.append("/home/chilpert/Dev/pythonLogger")
 
 import pythonLogger as pl 
 import pycouch.exceptions as exceptions
-import pycouch.watch as watch
+import pycouch.watch_replication as watch
 
 LOGGER = pl.init_logger("operations.py", "debug")
 LOGGER.propagate = False
