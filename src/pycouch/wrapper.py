@@ -58,13 +58,10 @@ def volDocAdd(iterable, updateFunc=lambdaFuse):
     data = []
     for k,v in list(iterable.items()):
         putInQueue(k,v)
-        break
+
     for regExp, cQueue in QUEUE_MAPPER.items():
         if not cQueue["queue"]:
-            continue
-        else:
-            print(regExp)
-            print(cQueue)    
+            continue    
         print("inserting ", regExp, str(len(cQueue["queue"])), "element(s) =>", cQueue["volName"])
         if DEBUG_MODE:
             print("DM",cQueue["queue"])
