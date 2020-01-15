@@ -349,6 +349,10 @@ class Wrapper():
         MaybeDoc = self.couchGetRequest(str(target) + '/' + str(key))
         if self.docNotFound(MaybeDoc):
             return None
+        
+        if "error" in MaybeDoc:
+            raise Exception(MaybeDoc)
+
         return MaybeDoc
 
     def couchPutDoc(self, target, key, data):
