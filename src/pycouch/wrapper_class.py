@@ -399,13 +399,12 @@ class Wrapper():
         res = self.couchGetRequest(target)
         if self.targetNotFound(res):
             return False  
+        if "error" in res:
+            raise Exception(res)
         return True 
 
     def couchCreateDB(self, target):
-        r = SESSION.put(self.end_point + "/" + target)
-        return json.loads(r.text)
+        res = self.couchPutRequest(target)
+        return res
 
-    def couchPostRequest(self, path, data):
-        r = SESSION.post(self.end_point + "/" + path, json = data)
-        resulttext = r.text
-        return json.loads(resulttext)
+    
