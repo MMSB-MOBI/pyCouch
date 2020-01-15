@@ -311,6 +311,8 @@ class Wrapper():
 
     def couchGetRequest(self,path, parameters=None):
         r= SESSION.get(self.end_point + '/' + path, params = parameters)
+    def couchDeleteRequest(self, path, parameters = None):
+        r = SESSION.delete(self.end_point + "/" + path, params = parameters)
         resulttext = r.text
         return json.loads(resulttext)
 
@@ -371,6 +373,17 @@ class Wrapper():
 
         if DEBUG_MODE:
             print(ans)
+
+    def couchDeleteDoc(self, target, key):
+        if not key:
+            raise ValueError("Please specify a document key")
+        MaybeGet = self.couchGetDoc(target, key)
+        if not MaybeGet or self.docNotFound(MaybeGet):
+            print("Document doesn't exist")
+            return None
+        params = {'rev' : MaybeGet["_rev"]}
+        MaybeDelete = self.couchDeleteRequest(f"{target}/{key}", params)
+        return MaybeDelete
 
     def targetNotFound(self,data):
         if "error" in data and "reason" in data:
