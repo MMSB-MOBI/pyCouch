@@ -320,6 +320,10 @@ class Wrapper():
         r= SESSION.put(self.end_point + '/' + path, json=data)
         resulttext = r.text
         return json.loads(resulttext)  
+    def couchPostRequest(self, path, data):
+        r = SESSION.post(self.end_point + "/" + path, json = data)
+        result = json.loads(r.text)
+        return result
 
     def couchDbList(self):
         return self.couchGetRequest('_all_dbs')
