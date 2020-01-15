@@ -350,7 +350,12 @@ class Wrapper():
     def couchPutDoc(self, target, key, data):
         MaybePut = self.couchPutRequest(target + '/' + key, data)
         return MaybePut
-
+    
+    def couchPostDoc(self, target, doc):
+        maybePost = self.couchPostRequest(target, doc)
+        if "error" in maybePost:
+            raise Exception(maybPost)
+        return maybePost
     def couchAddDoc(self, data, target=None, key=None, updateFunc=lambdaFuse):
         if not target:
             raise ValueError("Please specify a database to target")
