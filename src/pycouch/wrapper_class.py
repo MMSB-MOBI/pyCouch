@@ -311,17 +311,21 @@ class Wrapper():
 
     def couchGetRequest(self,path, parameters=None):
         r= SESSION.get(self.end_point + '/' + path, params = parameters)
+        result = json.loads(r.text)
+        return result
+
     def couchDeleteRequest(self, path, parameters = None):
         r = SESSION.delete(self.end_point + "/" + path, params = parameters)
         resulttext = r.text
         return json.loads(resulttext)
 
-    def couchPutRequest(self, path, data):
-        print(self.end_point + "/" + path)
-        print(data)
+    def couchPutRequest(self, path, data = None):
         r= SESSION.put(self.end_point + '/' + path, json=data)
-        resulttext = r.text
-        return json.loads(resulttext)  
+        result = json.loads(r.text)
+        if "error" in result: 
+            raise Exception(result)
+        return result
+    
     def couchPostRequest(self, path, data):
         r = SESSION.post(self.end_point + "/" + path, json = data)
         result = json.loads(r.text)
@@ -335,7 +339,7 @@ class Wrapper():
 
     def docNotFound(self,data):
         if "error" in data and "reason" in data:
-            return data["error"] == "not_found" and data["reason"] == "missing"
+            return data["error"] == "not_found" and (data["reason"] == "missing" or data["reason"] == "deleted")
         return False
 
     def couchGetDoc(self,target, key):
@@ -356,6 +360,7 @@ class Wrapper():
         if "error" in maybePost:
             raise Exception(maybPost)
         return maybePost
+
     def couchAddDoc(self, data, target=None, key=None, updateFunc=lambdaFuse):
         if not target:
             raise ValueError("Please specify a database to target")
@@ -373,11 +378,11 @@ class Wrapper():
                 print ("Updating " + target + "/" + key)
                 print(ans)
             dataToPut = updateFunc(ans, data)   
-        
         ans = self.couchPutDoc(target, key, dataToPut)
-
         if DEBUG_MODE:
             print(ans)
+        
+        return ans
 
     def couchDeleteDoc(self, target, key):
         if not key:
