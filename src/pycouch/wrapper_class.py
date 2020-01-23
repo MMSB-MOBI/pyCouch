@@ -1,6 +1,10 @@
 import requests
 import json, re, time, random
 
+class CouchWrapperError(Exception):
+    pass
+
+
 DEBUG_MODE = False
 
 SESSION = requests.session()
@@ -145,7 +149,7 @@ class Wrapper():
                 
             elif 'ok' in _datum:
                 if "error" in _datum["ok"]:
-                    raise Exception("Unexpected \"error\" key in bulkDocAdd answer packet::" + str( _datum["ok"]))   
+                    raise CouchWrapperError("Unexpected \"error\" key in bulkDocAdd answer packet::" + str( _datum["ok"]))   
                 dataToPut = updateFunc(_datum["ok"], iterable[key])
             else:
                 print('unrecognized item packet format', str(reqItem))
@@ -323,7 +327,7 @@ class Wrapper():
         r= SESSION.put(self.end_point + '/' + path, json=data)
         result = json.loads(r.text)
         if "error" in result: 
-            raise Exception(result)
+            raise CouchWrapperError(result)
         return result
     
     def couchPostRequest(self, path, data):
@@ -347,11 +351,12 @@ class Wrapper():
             raise ValueError("Please specify a document key")
             
         MaybeDoc = self.couchGetRequest(str(target) + '/' + str(key))
+
         if self.docNotFound(MaybeDoc):
             return None
         
         if "error" in MaybeDoc:
-            raise Exception(MaybeDoc)
+            raise CouchWrapperError(MaybeDoc)
 
         return MaybeDoc
 
@@ -362,7 +367,7 @@ class Wrapper():
     def couchPostDoc(self, target, doc):
         maybePost = self.couchPostRequest(target, doc)
         if "error" in maybePost:
-            raise Exception(maybPost)
+            raise CouchWrapperError(maybePost)
         return maybePost
 
     def couchAddDoc(self, data, target=None, key=None, updateFunc=lambdaFuse):
@@ -409,7 +414,7 @@ class Wrapper():
         if self.targetNotFound(res):
             return False  
         if "error" in res:
-            raise Exception(res)
+            raise CouchWrapperError(res)
         return True 
 
     def couchCreateDB(self, target):
