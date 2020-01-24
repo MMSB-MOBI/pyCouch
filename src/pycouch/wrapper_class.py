@@ -25,7 +25,7 @@ class Wrapper():
         self._bak_endpoint = "".join(end_point.split("//")[1:])
         self.queue_mapper = {}
         if admin[0] and admin[1]:
-            self.admin = self.setAdmin(admin[0], admin[1])
+            self.setAdmin(admin[0], admin[1])
     
     def setServerUrl(self,path):
         '''path : str'''
@@ -171,7 +171,7 @@ class Wrapper():
             if depth == 1:
                 print("Insert Error Recursive fix\n", insertError)
 
-            if depth == 2:
+            if depth == 50:
                 print("Giving up at 50th try for", insertError)
             else:
                 idError = [ d['id'] for d in insertError ]
