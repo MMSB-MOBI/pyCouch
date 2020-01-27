@@ -316,6 +316,8 @@ class Wrapper():
     def couchGetRequest(self,path, parameters=None):
         r= SESSION.get(self.end_point + '/' + path, params = parameters)
         result = json.loads(r.text)
+        if "error" in result:
+            raise CouchWrapperError(result)
         return result
 
     def couchDeleteRequest(self, path, parameters = None):
