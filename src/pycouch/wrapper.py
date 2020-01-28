@@ -1,5 +1,6 @@
 import requests
 import json, re, time, random
+from copy import deepcopy
 
 class CouchWrapperError(Exception):
     pass
@@ -121,11 +122,12 @@ class Wrapper():
     
 
     ## BULK FUNCTIONS
+    # Doing deepcopy to avoid modification of the input iterable w/ _id, _rev keys
+    def bulkDocAdd(self, _iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterable w/ key:value pairs, key is primary _id in DB and value is document to insert
 
-    def bulkDocAdd(self, iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterable w/ key:value pairs, key is primary _id in DB and value is document to insert
-
+        iterable = deepcopy(_iterable)
         if DEBUG_MODE:
-            print("bulkDocAdd iterable content", iterable)
+            print("bulkDocAdd iterable content", _iterable)
 
         if not target:
             raise ValueError ("No target db specified")
