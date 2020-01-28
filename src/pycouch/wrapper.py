@@ -43,6 +43,10 @@ class Wrapper():
                 "volName" : ruleLitt[regExp],
                 "queue" : {}
             }
+    
+    @property
+    def hasKeyMappingRules(self):
+        return bool(self.queue_mapper)
 
     def setAdmin(self, admin_name, admin_password):
         self.admin = admin_name
