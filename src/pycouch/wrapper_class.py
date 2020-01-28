@@ -316,8 +316,6 @@ class Wrapper():
     def couchGetRequest(self,path, parameters=None):
         r= SESSION.get(self.end_point + '/' + path, params = parameters)
         result = json.loads(r.text)
-        if "error" in result:
-            raise CouchWrapperError(result)
         return result
 
     def couchDeleteRequest(self, path, parameters = None):
@@ -422,5 +420,30 @@ class Wrapper():
     def couchCreateDB(self, target):
         res = self.couchPutRequest(target)
         return res
+
+    def couchReplicate(self, source, target, continuous = False):
+        '''Replicate source to target. With continuous = True, changes on source will trigger changes on target'''
+        create_target = False
+        if not self.couchTargetExist(source):
+            print(f"{source} doesn't exist")
+            return
+        
+        if not self.couchTargetExist(target):
+            create_target = True
+
+        replication_doc = {
+            "source": self.end_point + "/" + source,
+            "target" : self.end_point + "/" + target,
+            "create_target" : create_target,
+            "continuous" : continuous
+        }
+
+        try:
+            self.couchPostDoc("_replicator", replication_doc)
+        except CouchWrapperError as e: 
+            print(f"Error while post document\n{e}")
+
+        print(f"Replicate document posted")
+
 
     
