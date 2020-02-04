@@ -1,10 +1,9 @@
 import requests
 import json, re, time, random
 from copy import deepcopy
-
-class CouchWrapperError(Exception):
-    pass
-
+import logging
+import sys
+import pycouch.error as error
 
 DEBUG_MODE = False
 
@@ -155,7 +154,7 @@ class Wrapper():
                 
             elif 'ok' in _datum:
                 if "error" in _datum["ok"]:
-                    raise CouchWrapperError("Unexpected \"error\" key in bulkDocAdd answer packet::" + str( _datum["ok"]))   
+                    raise error.CouchWrapperError("Unexpected \"error\" key in bulkDocAdd answer packet::" + str( _datum["ok"]))   
                 dataToPut = updateFunc(_datum["ok"], iterable[key])
             else:
                 print('unrecognized item packet format', str(reqItem))
@@ -306,13 +305,13 @@ class Wrapper():
             try :
                 data = json.loads(r.text)
             except:
-                print('Cant decode ping')
+                print('Cant decode ping', file=sys.stderr)
                 return False
         except:
-            print("Cant connect to DB at:", self.end_point)
+            print(f"Cant connect to DB at: {self.end_point}", file = sys.stderr)
             return False
 
-        print("Connection established\n", data)
+        logging.info("Connection established\n", data)
         return True    
 
     def couchPS(self):
@@ -333,7 +332,7 @@ class Wrapper():
         r= SESSION.put(self.end_point + '/' + path, json=data)
         result = json.loads(r.text)
         if "error" in result: 
-            raise CouchWrapperError(result)
+            raise error.CouchWrapperError(result)
         return result
     
     def couchPostRequest(self, path, data):
@@ -362,7 +361,7 @@ class Wrapper():
             return None
         
         if "error" in MaybeDoc:
-            raise CouchWrapperError(MaybeDoc)
+            raise error.CouchWrapperError(MaybeDoc)
 
         return MaybeDoc
 
@@ -373,7 +372,7 @@ class Wrapper():
     def couchPostDoc(self, target, doc):
         maybePost = self.couchPostRequest(target, doc)
         if "error" in maybePost:
-            raise CouchWrapperError(maybePost)
+            raise error.CouchWrapperError(maybePost)
         return maybePost
 
     def couchAddDoc(self, data, target=None, key=None, updateFunc=lambdaFuse):
@@ -420,7 +419,7 @@ class Wrapper():
         if self.targetNotFound(res):
             return False  
         if "error" in res:
-            raise CouchWrapperError(res)
+            raise error.CouchWrapperError(res)
         return True 
 
     def couchCreateDB(self, target):
