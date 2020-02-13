@@ -91,7 +91,6 @@ class Wrapper():
                 except Exception as e:
                     print("Something wrong append while bulkDocAdd, retrying time", str(joker))
                     print("Error LOG is ", str(e))
-                    exit()
                     joker += 1
                     if joker > 50:
                         print("50 tries failed, giving up")
