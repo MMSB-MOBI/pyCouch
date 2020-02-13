@@ -1,0 +1,2 @@
+class CouchWrapperError(Exception):
+    pass
