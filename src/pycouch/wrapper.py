@@ -69,8 +69,7 @@ class Wrapper():
         if not self.queue_mapper:
             raise ValueError ("Please set volume mapping rules")
         
-        if DEBUG_MODE:
-            print("Dispatching", len(iterable), "items")
+        logging.debug(f"Dispatching {len(iterable)} items")
 
         data = []
         for k,v in list(iterable.items()):
@@ -79,20 +78,19 @@ class Wrapper():
         for regExp, cQueue in self.queue_mapper.items():
             if not cQueue["queue"]:
                 continue   
-            print("inserting ", regExp, str(len(cQueue["queue"])), "element(s) =>", cQueue["volName"])
-            if DEBUG_MODE:
-                print("DM",cQueue["queue"])
+            logging.info(f'inserting {regExp} {len(cQueue["queue"])} element(s) => {cQueue["volName"]}')
+            logging.debug(f'DM {cQueue["queue"]}')
             joker = 0
             _data = []
             while True:
                 try : 
                     _data = self.bulkDocAdd(cQueue["queue"], updateFunc=updateFunc, target=cQueue["volName"])
                 except Exception as e:
-                    print("Something wrong append while bulkDocAdd, retrying time", str(joker))
-                    print("Error LOG is ", str(e))
+                    logging.error("Something wrong append while bulkDocAdd, retrying time " + str(joker))
+                    logging.error("Error LOG is " + str(e))
                     joker += 1
                     if joker > 50:
-                        print("50 tries failed, giving up")
+                        logging.error("50 tries failed, giving up")
                         break
                     time.sleep(5)
                     continue
@@ -115,7 +113,7 @@ class Wrapper():
             if not cQueue["queue"]:
                 continue
 
-            print("updating ", regExp, str(len(cQueue["queue"])), "element(s) =>", cQueue["volName"])  
+            logging.info(f'updating {regExp} {len(cQueue["queue"])} element(s) => {cQueue["volName"]}')
             data = self.bulkDocUpdate(cQueue["queue"], updateFunc=updateFunc, target=cQueue["volName"], **kwargs)
     
 
@@ -124,16 +122,14 @@ class Wrapper():
     def bulkDocAdd(self, _iterable, updateFunc=lambdaFuse, target=None, depth=0): # iterable w/ key:value pairs, key is primary _id in DB and value is document to insert
 
         iterable = deepcopy(_iterable)
-        if DEBUG_MODE:
-            print("bulkDocAdd iterable content", _iterable)
+        logging.debug(f"bulkDocAdd iterable content {_iterable}")
 
         if not target:
             raise ValueError ("No target db specified")
         ans = self.bulkRequestByKey(list(iterable.keys()), target)# param iterable msut have a keys method
-        
-        if DEBUG_MODE:
-            print("bulkDocAdd prior key request ", ans.keys())
-            print(ans)
+
+        logging.debug(f"bulkDocAdd prior key request {ans.keys()}")
+        logging.debug(ans)
         
         bulkInsertData = {"docs" : [] }
         for reqItem in ans['results']:       
@@ -146,23 +142,21 @@ class Wrapper():
             _datum = reqItem['docs'][0] # mandatory docs key, one value array guaranted
             if 'error' in _datum:
                 if self.docNotFound(_datum["error"]):
-                    if DEBUG_MODE:
-                        print("creating ", key, "document" )
+                    logging.debug(f"creating {key} document")
                 else:
-                    print ('Unexpected error here', _datum)
+                    logging.error(f'Unexpected error here {_datum}')
                 
             elif 'ok' in _datum:
                 if "error" in _datum["ok"]:
                     raise error.CouchWrapperError("Unexpected \"error\" key in bulkDocAdd answer packet::" + str( _datum["ok"]))   
                 dataToPut = updateFunc(_datum["ok"], iterable[key])
             else:
-                print('unrecognized item packet format', str(reqItem))
+                logging.error(f'unrecognized item packet format {reqItem}')
                 continue
                 
             bulkInsertData["docs"].append(dataToPut) 
 
-        if DEBUG_MODE:
-            print("about to bulk_doc that", str(bulkInsertData)) 
+        logging.debug(f"about to bulk_doc that {bulkInsertData}")
         #r = requests.post(DEFAULT_END_POINT + '/' + target + '/_bulk_docs', json=bulkInsertData)
         #ans = json.loads(r.text)
         insertError, insertOk = ([], [])
@@ -174,24 +168,22 @@ class Wrapper():
 
         if insertError:
             depth += 1
-            if DEBUG_MODE:
-                print("Retry depth", depth)
+            logging.debug(f"Retry depth {depth}")
             if depth == 1:
-                print("Insert Error Recursive fix\n", insertError)
+                logging.error(f"Insert Error Recursive fix\n{insertError}")
 
             if depth == 50:
-                print("Giving up at 50th try for", insertError)
+                logging.error(f"Giving up at 50th try for {insertError}")
             else:
                 idError = [ d['id'] for d in insertError ]
-                if DEBUG_MODE:
-                    print("iterable to filter from", iterable)
-                    print("depth", depth, ' insert Error content:', insertError)
+                logging.debug(f"iterable to filter from {iterable}")
+                logging.debug(f"depth {depth} insert Error content: {insertError}")
                 _iterable = { k:v for k,v in iterable.items() if k in idError}
                 insertOk  += self.bulkDocAdd(_iterable, updateFunc=updateFunc, target=target, depth=depth)
         elif depth > 0:
-            print("No more recursive insert left at depth", depth)
-        if DEBUG_MODE:
-            print("returning ", insertOk)
+            logging.info(f"No more recursive insert left at depth {depth}", depth)
+        
+        logging.debug(f"returning {insertOk}", insertOk)
     
         return insertOk   
 
@@ -214,30 +206,26 @@ class Wrapper():
 
         if insertError:
             depth += 1
-            if DEBUG_MODE:
-                print("Retry depth", depth)
+            logging.debug(f"Retry depth {depth}")
             if depth == 1:
-                print("Insert Error Recursive fix\n", insertError)
+                logging.error(f"Insert Error Recursive fix\n{insertError}")
 
             if depth == 50:
-                print("Giving up at 50th try for", insertError)
+                logging.error(f"Giving up at 50th try for {insertError}")
             else:
                 idError = [ d['id'] for d in insertError ]
-                if DEBUG_MODE:
-                    print("iterable to filter from", iterable)
-                    print("depth", depth, ' insert Error content:', insertError)
+                logging.debug(f"iterable to filter from {iterable}")
+                logging.debug(f"depth {depth} insert Error content: {insertError}")
                 _iterable = { k:v for k,v in iterable.items() if k in idError}
                 insertOk  += self.bulkDocAdd(_iterable, updateFunc=updateFunc, target=target, depth=depth)
         elif depth > 0:
-            print("No more recursive insert left at depth", depth)
-        if DEBUG_MODE:
-            print("returning ", insertOk)
+            logging.info(f"No more recursive insert left at depth {depth}")
+        logging.debug("returning ", insertOk)
         return insertOk       
 
     def bulkRequestByKey(self, keyIter, target, packetSize=2000):      
         data = {"results" : []}
-        if DEBUG_MODE:
-            print("bulkRequestByKey at", target)  
+        logging.debug(f"bulkRequestByKey at {target}")  
         for i in range(0,len(keyIter), packetSize):
             j = i + packetSize if i + packetSize < len(keyIter) else len(keyIter)
             keyBag = keyIter[i:j]
@@ -250,13 +238,11 @@ class Wrapper():
 
     def bulkRequestByKeyParallel(self, keyIter, target, packetSize=2000, processus = 6):      
         data = {"results" : []}
-        if DEBUG_MODE:
-            print("bulkRequestByKey at", target)  
+        logging.debug(f"bulkRequestByKey at {target}")  
 
         pool = Pool(processus)
         packets = [keyIter[x:x+packetSize] for x in range(0, len(keyIter), packetSize)]
         data = pool.starmap(self._bulkRequestByKey, [(p, target) for p in packets])
-        print(data[0].keys())
         return data    
 
     def _bulkRequestByKey(self, keyIter, target):
@@ -275,10 +261,10 @@ class Wrapper():
             v = random.randint(0, 1)
             x = random.randint(0, len(data) - 1)
             if v == 0:
-                print("Generating error at postion", x)
-                print("prev is", data[x])
+                logging.debug(f"Generating error at postion {x}")
+                logging.debug(f"prev is {data[x]}")
                 errPacket = {'id': data[x]['id'], 'error': 'unknown_error', 'reason': 'undefined', '_rev' : data[x]['rev']}
-                print(data[x], "-->", errPacket)
+                logging.debug(f"{data[x]} --> {errPacket}")
                 data[x] = errPacket
         
         ok = []
@@ -288,7 +274,7 @@ class Wrapper():
                 if insertStatus['ok']:
                     ok.append(insertStatus)
                 else:
-                    print ("NEW ERROR", str(insertStatus))
+                    logging.error(f"NEW ERROR {insertStatus}")
             else :
                 err.append(insertStatus)
 
@@ -310,7 +296,7 @@ class Wrapper():
             print(f"Cant connect to DB at: {self.end_point}", file = sys.stderr)
             return False
 
-        logging.info("Connection established\n", data)
+        logging.info(f"Connection established\n{data}")
         return True    
 
     def couchPS(self):
@@ -383,17 +369,14 @@ class Wrapper():
 
         dataToPut = data
         if not ans:
-            if DEBUG_MODE:
-                print ("Creating " + target + "/" + key)       
-                print(ans)
+            logging.debug ("Creating " + target + "/" + key)       
+            logging.debug(ans)
         else :
-            if DEBUG_MODE:
-                print ("Updating " + target + "/" + key)
-                print(ans)
+            logging.debug("Updating " + target + "/" + key)
+            logging.debug(ans)
             dataToPut = updateFunc(ans, data)   
         ans = self.couchPutDoc(target, key, dataToPut)
-        if DEBUG_MODE:
-            print(ans)
+        logging.debug(ans)
         
         return ans
 
@@ -402,7 +385,7 @@ class Wrapper():
             raise ValueError("Please specify a document key")
         MaybeGet = self.couchGetDoc(target, key)
         if not MaybeGet or self.docNotFound(MaybeGet):
-            print("Document doesn't exist")
+            logging.warn("Document doesn't exist")
             return None
         params = {'rev' : MaybeGet["_rev"]}
         MaybeDelete = self.couchDeleteRequest(f"{target}/{key}", params)
