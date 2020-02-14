@@ -85,6 +85,7 @@ class Wrapper():
             while True:
                 try : 
                     _data = self.bulkDocAdd(cQueue["queue"], updateFunc=updateFunc, target=cQueue["volName"])
+                    logging.info(f"Success bulkDocAdd at try {joker}")
                 except Exception as e:
                     logging.error("Something wrong append while bulkDocAdd, retrying time " + str(joker))
                     logging.error("Error LOG is " + str(e))
@@ -183,7 +184,7 @@ class Wrapper():
         elif depth > 0:
             logging.info(f"No more recursive insert left at depth {depth}", depth)
         
-        logging.debug(f"returning {insertOk}", insertOk)
+        logging.debug(f"returning {insertOk}")
     
         return insertOk   
 

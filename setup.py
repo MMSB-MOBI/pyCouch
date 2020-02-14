@@ -15,7 +15,7 @@ from setuptools import setup
 
 setup(
   name = 'pycouch',
-  version = '2.1',
+  version = '2.1.2',
   license='BSD',
   description = 'Wrapper functions to interact with a couch DB',
   author = 'Guillaume Launay, Cecile Hilpert',
