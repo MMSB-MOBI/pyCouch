@@ -15,7 +15,7 @@ from setuptools import setup
 
 setup(
   name = 'pycouch',
-  version = '2.0',
+  version = '2.1',
   license='BSD',
   description = 'Wrapper functions to interact with a couch DB',
   author = 'Guillaume Launay, Cecile Hilpert',
@@ -26,7 +26,7 @@ setup(
   include_package_data=True,
   zip_safe=False,
   py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
-  download_url = 'https://github.com/glaunay/MMSB-MOBI/tarball/2.0', # I'll explain this in a second
+  download_url = 'https://github.com/glaunay/MMSB-MOBI/tarball/2.1', # I'll explain this in a second
   keywords = ['couchDB', 'python'], # arbitrary keywords
   classifiers = [],
   install_requires=[
